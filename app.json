@@ -1,17 +1,39 @@
 {
   "expo": {
-    "name": "hopday-ios",
-    "slug": "hopday-ios",
+    "name": "Hopday",
+    "slug": "hopday",
+    "scheme": "hopday",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#14213D",
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.uniformsudc.hopday",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "WKAppBoundDomains": [
+          "hopday.app",
+          "www.hopday.app",
+          "trips.uniforms-udc.com",
+          "yonkisqhwyquydvjjwqq.supabase.co"
+        ],
+        "NSLocationWhenInUseUsageDescription": "Hopday uses your location to check you in at the places on your plan and to show how long it takes to get to the next stop.",
+        "NSCameraUsageDescription": "Hopday uses the camera so you can photograph a ticket or booking and add it to your trip.",
+        "NSPhotoLibraryUsageDescription": "Hopday opens your photos so you can add screenshots of bookings and tickets to your trip.",
+        "NSMicrophoneUsageDescription": "Hopday uses the microphone when you ask the trip assistant something by voice.",
+        "NSSpeechRecognitionUsageDescription": "Hopday turns what you say into text when you ask the trip assistant by voice.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.uniformsudc.hopday",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#14213D",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +42,34 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "Hopday reads your step count to show how far you walked on each day of your trip.",
+          "NSHealthUpdateUsageDescription": false,
+          "background": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#14213D"
+        }
+      ],
+      "expo-build-properties",
+      "expo-sharing",
+      "expo-web-browser"
+    ],
+    "owner": "hopday",
+    "extra": {
+      "eas": {
+        "projectId": "dccfb5a7-3585-4b63-8c9c-571e5645fd14"
+      }
     }
   }
 }
