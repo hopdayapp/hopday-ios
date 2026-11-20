@@ -34,6 +34,14 @@ jobs:
         env:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/asc.p8"
+      - name: Check Apple accepts the key
+        env:
+          EXPO_ASC_API_KEY_PATH: ${{ runner.temp }}/asc.p8
+          EXPO_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          pip install --quiet pyjwt cryptography
+          python3 .github/scripts/check_apple_key.py
       - name: Start the build on Expo (creates the signing certificate the first time)
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
