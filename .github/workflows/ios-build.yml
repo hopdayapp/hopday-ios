@@ -33,7 +33,17 @@ jobs:
       - name: Save the App Store Connect key for this run only
         env:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
-        run: printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/asc.p8"
+        run: |
+          python3 - <<'PY'
+          import os, re
+          raw = os.environ["ASC_KEY_P8"].replace("\\n", "\n").strip()
+          body = re.sub(r"-----(BEGIN|END) [A-Z ]*PRIVATE KEY-----", "", raw)
+          body = re.sub(r"[^A-Za-z0-9+/=]", "", body)          # keep only the key letters
+          lines = [body[i:i + 64] for i in range(0, len(body), 64)]
+          pem = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(lines) + "\n-----END PRIVATE KEY-----\n"
+          open(os.path.join(os.environ["RUNNER_TEMP"], "asc.p8"), "w").write(pem)
+          print("Key file prepared:", len(lines), "lines")
+          PY
       - name: Check Apple accepts the key
         env:
           EXPO_ASC_API_KEY_PATH: ${{ runner.temp }}/asc.p8
