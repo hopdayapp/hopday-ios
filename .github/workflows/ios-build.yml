@@ -1,0 +1,48 @@
+# Builds the iPhone app on Expo. The first run also creates the Apple signing certificate
+# and provisioning profile, using the App Store Connect API key stored in this repository's
+# Secrets (Settings > Secrets and variables > Actions). No secret is ever written to the code.
+name: iOS build
+
+on:
+  workflow_dispatch:          # "Run workflow" button on GitHub › Actions
+  push:
+    paths: [".github/ios-build-trigger.txt"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check the secrets are there
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=""
+          for n in EXPO_TOKEN ASC_KEY_P8 ASC_KEY_ID ASC_ISSUER_ID APPLE_TEAM_ID; do [ -z "${!n}" ] && missing="$missing $n"; done
+          if [ -n "$missing" ]; then echo "::error::Missing secrets:$missing"; exit 1; fi
+      - name: Save the App Store Connect key for this run only
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/asc.p8"
+      - name: Start the build on Expo (creates the signing certificate the first time)
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_ASC_API_KEY_PATH: ${{ runner.temp }}/asc.p8
+          EXPO_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          EXPO_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          EXPO_APPLE_TEAM_TYPE: ${{ vars.APPLE_TEAM_TYPE || 'INDIVIDUAL' }}
+        run: npx -y eas-cli@latest build --platform ios --profile production --non-interactive --no-wait
+      - name: Remove the key file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/asc.p8"
