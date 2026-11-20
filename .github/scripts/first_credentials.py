@@ -5,7 +5,7 @@ import os, re, sys, pexpect
 
 cmd = "npx -y eas-cli@latest build --platform ios --profile production --no-wait"
 child = pexpect.spawn("/bin/bash", ["-lc", cmd], encoding="utf-8", timeout=900,
-                      dimensions=(50, 200), env={**os.environ, "FORCE_COLOR": "0", "CI": ""})
+                      dimensions=(50, 200), env={k: v for k, v in {**os.environ, "FORCE_COLOR": "0"}.items() if k not in ("CI", "GITHUB_ACTIONS", "CONTINUOUS_INTEGRATION")})
 child.logfile_read = sys.stdout
 
 # Questions we expect, and the answer to give. Anything that asks for an Apple password
