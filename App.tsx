@@ -151,7 +151,12 @@ export default function App() {
       return;
     }
     const back = res.url.replace(/^hopday:\/\/auth\/?/, "");
-    setUri(HOME + (back.startsWith("?") || back.startsWith("#") ? back : ""));
+    if (back.startsWith("#")) {
+      /* hand the login to the open page (changing only the #part would not reload it) */
+      web.current?.injectJavaScript(`location.hash=${JSON.stringify(back)}; if(window.__hnTakeAuth) window.__hnTakeAuth(); true;`);
+    } else {
+      setUri(HOME + (back.startsWith("?") ? back : ""));
+    }
   }, []);
 
   const onShouldStart = useCallback((req: ShouldStartLoadRequest) => {
