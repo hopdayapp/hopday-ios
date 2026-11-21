@@ -192,6 +192,8 @@ export default function App() {
         injectedJavaScript={BRIDGE}
         onMessage={onMessage}
         onShouldStartLoadWithRequest={onShouldStart}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         onLoadEnd={() => { setReady(true); SplashScreen.hideAsync().catch(() => {}); }}
         onError={(e: any) => { if (!ready || /offline|internet|-1009/i.test(e.nativeEvent.description || "")) setFailed(true); }}
         onContentProcessDidTerminate={() => web.current?.reload()}
