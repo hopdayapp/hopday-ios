@@ -6,6 +6,8 @@ import * as WebBrowser from "expo-web-browser";
 import * as Sharing from "expo-sharing";
 import { File, Paths } from "expo-file-system";
 import * as SplashScreen from "expo-splash-screen";
+import * as AppleAuthentication from "expo-apple-authentication";
+import * as Crypto from "expo-crypto";
 import {
   isHealthDataAvailable,
   queryStatisticsForQuantity,
@@ -37,7 +39,9 @@ const BRIDGE = `
     /* steps walked on a day ("YYYY-MM-DD", the phone's own time zone) from Apple Health */
     steps: function(date){ return call("steps", {date: date}); },
     /* opens the iPhone share menu with a file (data URL: picture, CSV, PDF, calendar) */
-    shareFile: function(dataUrl, name){ return call("shareFile", {dataUrl: dataUrl, name: name}); }
+    shareFile: function(dataUrl, name){ return call("shareFile", {dataUrl: dataUrl, name: name}); },
+    /* Sign in with Apple: returns {token, nonce, name, email} for Supabase signInWithIdToken */
+    appleSignIn: function(){ return call("appleSignIn", {}); }
   };
   document.documentElement.classList.add("in-ios-app");
   try { window.dispatchEvent(new Event("hopday-native")); } catch(e) {}
@@ -89,6 +93,25 @@ async function shareFile(dataUrl: string, name?: string) {
   return true;
 }
 
+/* Native Sign in with Apple. Supabase checks the token against the hashed nonce. */
+async function appleSignIn() {
+  if (!(await AppleAuthentication.isAvailableAsync())) throw new Error("Sign in with Apple isn't available on this device");
+  const nonce = Array.from(Crypto.getRandomBytes(16), (b) => b.toString(16).padStart(2, "0")).join("");
+  const hashed = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, nonce);
+  try {
+    const c = await AppleAuthentication.signInAsync({
+      requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME, AppleAuthentication.AppleAuthenticationScope.EMAIL],
+      nonce: hashed,
+    });
+    if (!c.identityToken) throw new Error("Apple didn't return a sign-in token");
+    const name = [c.fullName?.givenName, c.fullName?.familyName].filter(Boolean).join(" ");
+    return { token: c.identityToken, nonce, name, email: c.email || "" };
+  } catch (e: any) {
+    if (e?.code === "ERR_REQUEST_CANCELED") return { cancelled: true };
+    throw e;
+  }
+}
+
 export default function App() {
   const web = useRef<WebView>(null);
   const [uri, setUri] = useState(HOME);
@@ -109,6 +132,7 @@ export default function App() {
     try { msg = JSON.parse(e.nativeEvent.data); } catch { return; }
     try {
       if (msg.type === "steps") reply(msg.id, true, await stepsFor(String(msg.data.date)));
+      else if (msg.type === "appleSignIn") reply(msg.id, true, await appleSignIn());
       else if (msg.type === "shareFile") reply(msg.id, true, await shareFile(msg.data.dataUrl, msg.data.name));
       else reply(msg.id, false, "unknown");
     } catch (err: any) {

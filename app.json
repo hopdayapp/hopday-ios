@@ -10,7 +10,6 @@
     "backgroundColor": "#14213D",
     "ios": {
       "bundleIdentifier": "com.uniformsudc.hopday",
-      "buildNumber": "1",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
@@ -28,7 +27,8 @@
         "NSMicrophoneUsageDescription": "Hopday uses the microphone when you ask the trip assistant something by voice.",
         "NSSpeechRecognitionUsageDescription": "Hopday turns what you say into text when you ask the trip assistant by voice.",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.uniformsudc.hopday",
@@ -63,7 +63,8 @@
       ],
       "expo-build-properties",
       "expo-sharing",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "owner": "hopday",
     "extra": {
