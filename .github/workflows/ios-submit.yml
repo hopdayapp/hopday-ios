@@ -1,0 +1,53 @@
+# Sends a finished Expo build to App Store Connect (TestFlight). The build id is read from
+# .github/ios-submit-trigger.txt. Uses the same App Store Connect key secrets as the build.
+name: iOS submit to TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        description: "Expo build id (empty = latest finished iOS build)"
+        required: false
+  push:
+    paths: [".github/ios-submit-trigger.txt"]
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Save the App Store Connect key for this run only
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: python3 .github/scripts/write_key.py
+      - name: Point the submit settings at the key (this run only, not saved)
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          j = json.load(open("eas.json"))
+          ios = j.setdefault("submit", {}).setdefault("production", {}).setdefault("ios", {})
+          ios.update({"ascApiKeyPath": os.path.join(os.environ["RUNNER_TEMP"], "asc.p8"),
+                      "ascApiKeyId": os.environ["KEY_ID"].strip(), "ascApiKeyIssuerId": os.environ["ISSUER_ID"].strip()})
+          json.dump(j, open("eas.json", "w"), indent=2)
+          print("Submit settings ready for App Store app", ios.get("ascAppId"))
+          PY
+      - name: Send the build to App Store Connect
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          BUILD="${{ github.event.inputs.build_id }}"
+          [ -z "$BUILD" ] && [ -f .github/ios-submit-trigger.txt ] && BUILD="$(grep -oE '[0-9a-f-]{36}' .github/ios-submit-trigger.txt | head -1)"
+          if [ -n "$BUILD" ]; then ARGS="--id $BUILD"; else ARGS="--latest"; fi
+          npx -y eas-cli@latest submit --platform ios --profile production $ARGS --non-interactive --wait
+      - name: Remove the key file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/asc.p8"
