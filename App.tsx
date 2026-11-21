@@ -145,7 +145,11 @@ export default function App() {
     const u = new URL(authorizeUrl);
     u.searchParams.set("redirect_to", AUTH_CALLBACK);
     const res = await WebBrowser.openAuthSessionAsync(u.toString(), AUTH_CALLBACK);
-    if (res.type !== "success" || !res.url) return;
+    if (res.type !== "success" || !res.url) {
+      /* window closed without finishing: take the page back to the sign-in buttons */
+      web.current?.injectJavaScript(`try{ busy(false); }catch(e){} true;`);
+      return;
+    }
     const back = res.url.replace(/^hopday:\/\/auth\/?/, "");
     setUri(HOME + (back.startsWith("?") || back.startsWith("#") ? back : ""));
   }, []);
