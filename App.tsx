@@ -8,6 +8,8 @@ import { File, Paths } from "expo-file-system";
 import * as SplashScreen from "expo-splash-screen";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
+import * as Haptics from "expo-haptics";
+import * as StoreReview from "expo-store-review";
 import {
   isHealthDataAvailable,
   queryStatisticsForQuantity,
@@ -35,15 +37,22 @@ const BRIDGE = `
   window.__hnReply = function(id, ok, value){ var w = waiting[id]; if (!w) return; delete waiting[id]; ok ? w.resolve(value) : w.reject(new Error(value || "failed")); };
   window.HopdayNative = {
     platform: "ios",
-    version: 1,
+    version: 2,
     /* steps walked on a day ("YYYY-MM-DD", the phone's own time zone) from Apple Health */
     steps: function(date){ return call("steps", {date: date}); },
     /* opens the iPhone share menu with a file (data URL: picture, CSV, PDF, calendar) */
     shareFile: function(dataUrl, name){ return call("shareFile", {dataUrl: dataUrl, name: name}); },
     /* Sign in with Apple: returns {token, nonce, name, email} for Supabase signInWithIdToken */
-    appleSignIn: function(){ return call("appleSignIn", {}); }
+    appleSignIn: function(){ return call("appleSignIn", {}); },
+    /* a small tap you can feel: "tap" | "select" | "success" | "warning" | "error" */
+    haptic: function(kind){ return call("haptic", {kind: kind}).catch(function(){}); },
+    /* Apple's own "Enjoying Hopday?" rating prompt (Apple decides if and when it shows) */
+    askReview: function(){ return call("askReview", {}); },
+    /* opens a web page in a sheet inside the app instead of leaving to Safari */
+    openLink: function(url){ return call("openLink", {url: url}); }
   };
-  document.documentElement.classList.add("in-ios-app");
+  var mark = function(){ if (document.documentElement) document.documentElement.classList.add("in-ios-app"); };
+  mark(); document.addEventListener("DOMContentLoaded", mark);
   try { window.dispatchEvent(new Event("hopday-native")); } catch(e) {}
 })();
 true;
@@ -54,6 +63,30 @@ function dayRange(date: string) {
   const start = new Date(y, m - 1, d, 0, 0, 0, 0);
   const end = new Date(y, m - 1, d + 1, 0, 0, 0, 0);
   return { start, end };
+}
+
+async function haptic(kind: string) {
+  if (kind === "success") return Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  if (kind === "warning") return Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  if (kind === "error") return Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+  if (kind === "select") return Haptics.selectionAsync();
+  return Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+}
+
+async function askReview() {
+  if (!(await StoreReview.isAvailableAsync())) return false;
+  await StoreReview.requestReview();
+  return true;
+}
+
+/* map and phone links go to their own apps; other web pages open in a sheet inside Hopday */
+function isAppLink(url: string) {
+  return /^(tel|mailto|sms|maps|comgooglemaps|whatsapp):/i.test(url) || /^https:\/\/(maps\.apple\.com|maps\.google\.|www\.google\.[a-z.]+\/maps|goo\.gl\/maps|maps\.app\.goo\.gl|apps\.apple\.com|wa\.me)/i.test(url);
+}
+async function openLink(url: string) {
+  if (!/^https?:\/\//i.test(url) || isAppLink(url)) { await Linking.openURL(url); return true; }
+  await WebBrowser.openBrowserAsync(url, { presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET, controlsColor: "#2B4FD8", dismissButtonStyle: "done" });
+  return true;
 }
 
 let healthAsked = false;
@@ -133,6 +166,9 @@ export default function App() {
     try {
       if (msg.type === "steps") reply(msg.id, true, await stepsFor(String(msg.data.date)));
       else if (msg.type === "appleSignIn") reply(msg.id, true, await appleSignIn());
+      else if (msg.type === "haptic") reply(msg.id, true, await haptic(String(msg.data.kind || "tap")));
+      else if (msg.type === "askReview") reply(msg.id, true, await askReview());
+      else if (msg.type === "openLink") reply(msg.id, true, await openLink(String(msg.data.url || "")));
       else if (msg.type === "shareFile") reply(msg.id, true, await shareFile(msg.data.dataUrl, msg.data.name));
       else reply(msg.id, false, "unknown");
     } catch (err: any) {
@@ -168,7 +204,7 @@ export default function App() {
     if (HOSTS.includes(host)) return true;
     if (!req.isTopFrame) return true; // embedded maps, players
     if (host.endsWith(".supabase.co")) return true; // sign-in emails that land here
-    Linking.openURL(url).catch(() => {});
+    openLink(url).catch(() => {});
     return false;
   }, [signIn]);
 
@@ -200,6 +236,8 @@ export default function App() {
         applicationNameForUserAgent="HopdayApp/1.0"
         limitsNavigationsToAppBoundDomains
         allowsBackForwardNavigationGestures
+        allowsLinkPreview={false}
+        dataDetectorTypes="none"
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
         mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
