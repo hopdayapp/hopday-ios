@@ -28,7 +28,10 @@
         "NSSpeechRecognitionUsageDescription": "Hopday turns what you say into text when you ask the trip assistant by voice.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "entitlements": {
+        "aps-environment": "production"
+      }
     },
     "android": {
       "package": "com.uniformsudc.hopday",
@@ -64,7 +67,31 @@
       "expo-build-properties",
       "expo-sharing",
       "expo-web-browser",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-widgets",
+        {
+          "groupIdentifier": "group.com.uniformsudc.hopday",
+          "widgets": [
+            {
+              "name": "HopdayToday",
+              "displayName": "Hopday today",
+              "description": "Where you are, time left and your next stop.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium",
+                  "accessoryRectangular",
+                  "accessoryInline",
+                  "accessoryCircular"
+                ],
+                "initialLayout": "./widgets/HopdayWidgets.tsx"
+              },
+              "android": null
+            }
+          ]
+        }
+      ]
     ],
     "owner": "hopday",
     "extra": {
