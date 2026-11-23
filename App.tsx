@@ -94,12 +94,15 @@ async function openLink(url: string) {
 }
 
 /* Widgets and the Lock Screen Live Activity */
+const w = (x: any) => String(x || "").slice(0, 40);
 const clean = (p: any): DayProps => ({
   mode: ["here", "going", "done", "idle"].includes(p?.mode) ? p.mode : "idle",
   trip: String(p?.trip || "").slice(0, 60), place: String(p?.place || "").slice(0, 80),
   from: Number(p?.from) || 0, until: Number(p?.until) || 0,
   next: String(p?.next || "").slice(0, 80), nextAt: Number(p?.nextAt) || 0,
   steps: Math.max(0, Math.round(Number(p?.steps) || 0)), note: String(p?.note || "").slice(0, 80),
+  travel: ["walking", "transit", "taxi", "driving", "bicycling"].includes(p?.travel) ? p.travel : "walking",
+  lHere: w(p?.lHere), lGoing: w(p?.lGoing), lLeft: w(p?.lLeft), lToGo: w(p?.lToGo), lNext: w(p?.lNext), lSteps: w(p?.lSteps), lLast: w(p?.lLast),
 });
 let lastLive = "";
 async function tripStatus(data: any) {

@@ -1,1 +1,1 @@
-build requested 2026-11-22T22:30:08Z (build 10 retry: App Group created)
+build 12: widgets redesign, travel icon, countdown starts at leave time, widget text in app language — 2026-11-23T08:56:07Z
