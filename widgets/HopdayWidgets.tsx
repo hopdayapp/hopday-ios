@@ -58,43 +58,45 @@ const TodayLayout = (p: DayProps, env: WidgetEnvironment) => {
       </VStack>
     );
   }
-  const nextBlock = p.next ? (
-    <VStack alignment="leading" spacing={1}>
-      <Text modifiers={[font({ size: 11, weight: "semibold" }), foregroundStyle(SOFT)]}>{p.lNext || "Next:"}</Text>
-      <Text modifiers={[font({ size: 13, weight: "semibold" }), foregroundStyle("#FFFFFF"), lineLimit(1)]}>{p.next}</Text>
-      {p.nextAt ? <Text date={new Date(p.nextAt)} dateStyle="time" modifiers={[font({ size: 12 }), foregroundStyle(SOFT)]} /> : null}
-    </VStack>
-  ) : null;
-  const main = (big: number) => (
-    <VStack alignment="leading" spacing={5}>
+  /* Option A, "big countdown": the place on top, a large countdown, the bar, then the next stop */
+  const nextLine = (sz: number) => p.next ? (
+    <HStack spacing={4}>
+      <Text modifiers={[font({ size: sz }), foregroundStyle(SOFT), lineLimit(1)]}>{(p.lNext || "Next:") + " "}</Text>
+      {p.nextAt ? <Text date={new Date(p.nextAt)} dateStyle="time" modifiers={[font({ size: sz, weight: "semibold" }), foregroundStyle("#FFFFFF")]} /> : null}
+      <Text modifiers={[font({ size: sz, weight: "semibold" }), foregroundStyle("#FFFFFF"), lineLimit(1)]}>{p.next}</Text>
+    </HStack>
+  ) : <Text modifiers={[font({ size: sz }), foregroundStyle(SOFT), lineLimit(1)]}>{p.lLast || "Last stop of the day"}</Text>;
+  const liveCard = (big: number, placeSize: number, nextSize: number) => (
+    <VStack alignment="leading" spacing={4}>
       <HStack spacing={6}>
-        {badge(22)}
         <Text modifiers={[font({ size: 12, weight: "semibold" }), foregroundStyle(SOFT), lineLimit(1)]}>{head}</Text>
+        <Spacer />
+        {badge(22)}
       </HStack>
-      <Text modifiers={[font({ size: 16, weight: "bold" }), foregroundStyle("#FFFFFF"), lineLimit(2)]}>{live ? p.place : p.note || "Plan your next trip"}</Text>
+      <Text modifiers={[font({ size: placeSize, weight: "bold" }), foregroundStyle("#FFFFFF"), lineLimit(1)]}>{p.place}</Text>
       <Spacer />
-      {live ? <HStack spacing={4} alignment="firstTextBaseline">{timer(big)}<Text modifiers={[font({ size: 12 }), foregroundStyle(SOFT)]}>{what}</Text></HStack> : null}
-      {live ? bar : null}
+      <HStack spacing={5} alignment="firstTextBaseline">{timer(big)}<Text modifiers={[font({ size: 13, weight: "medium" }), foregroundStyle(SOFT)]}>{what}</Text></HStack>
+      {bar}
+      {nextLine(nextSize)}
+    </VStack>
+  );
+  const idleCard = (big: number) => (
+    <VStack alignment="leading" spacing={4}>
+      <HStack spacing={6}>
+        <Text modifiers={[font({ size: 16, weight: "bold" }), foregroundStyle("#FFFFFF"), lineLimit(1)]}>{p.trip || "Hopday"}</Text>
+        <Spacer />
+        {badge(22)}
+      </HStack>
+      <Spacer />
+      <Text modifiers={[font({ size: big, weight: "bold", design: "rounded" }), foregroundStyle(AMBER), lineLimit(2)]}>{p.note || "Plan your next trip"}</Text>
+      {p.steps ? <HStack spacing={4}><Image systemName="figure.walk" color={SOFT} size={11} /><Text modifiers={[font({ size: 11 }), foregroundStyle(SOFT), monospacedDigit()]}>{String(p.steps) + " " + (p.lSteps || "steps today")}</Text></HStack> : null}
     </VStack>
   );
   if (fam === "systemMedium") {
-    return (
-      <HStack modifiers={[containerBackground(NAVY, "widget")]} spacing={14}>
-        {main(26)}
-        <VStack alignment="leading" spacing={6}>
-          {nextBlock}
-          <Spacer />
-          <HStack spacing={4}>
-            <Image systemName="figure.walk" color={AMBER} size={13} />
-            <Text modifiers={[font({ size: 15, weight: "bold", design: "rounded" }), foregroundStyle("#FFFFFF"), monospacedDigit()]}>{p.steps ? String(p.steps) : "–"}</Text>
-          </HStack>
-          <Text modifiers={[font({ size: 11 }), foregroundStyle(SOFT)]}>{p.lSteps || "steps today"}</Text>
-        </VStack>
-      </HStack>
-    );
+    return <VStack alignment="leading" modifiers={[containerBackground(NAVY, "widget")]}>{live ? liveCard(40, 19, 13) : idleCard(26)}</VStack>;
   }
   /* systemSmall */
-  return <VStack alignment="leading" modifiers={[containerBackground(NAVY, "widget")]}>{main(24)}</VStack>;
+  return <VStack alignment="leading" modifiers={[containerBackground(NAVY, "widget")]}>{live ? liveCard(32, 15, 11) : idleCard(20)}</VStack>;
 };
 
 export const TodayWidget = createWidget<DayProps>("HopdayToday", TodayLayout, {

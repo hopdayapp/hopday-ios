@@ -1,1 +1,1 @@
-build 12: widgets redesign, travel icon, countdown starts at leave time, widget text in app language — 2026-11-23T08:56:07Z
+build 13 requested 2026-11-26: big countdown widget (option A), version 1.1.0
